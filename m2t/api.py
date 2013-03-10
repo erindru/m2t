@@ -113,6 +113,8 @@ def api_upload(magnet_url_or_hash=None):
 				if not is_in_database(info_hash):
 					add_to_database(info_hash, item)
 		elif is_url(item):
+			item = urllib.unquote_plus(item)
+			logger.debug("Fetching %s" % item)			
 			download_to = tempfile.mkstemp(suffix=".torrent")[1]				
 			urllib.urlretrieve(item, download_to)
 			handle = open(download_to, "rb");
