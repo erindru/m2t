@@ -11,7 +11,7 @@ get_url = default_app().get_url
 api_error = lambda message: {"success" : False, "message" : message }
 api_success = lambda x: {"success" : True, "data" : x }
 
-hash_pattern = re.compile("([a-f0-9]{40})")
+hash_pattern = re.compile("([a-fA-F0-9]{40})")
 socket.setdefaulttimeout(5)
 
 libtorrent_settings_file = os.path.abspath("./libtorrent.settings")
@@ -133,7 +133,7 @@ def api_upload(magnet_url_or_hash=None):
 	return api_success({ "url" : item, "hash" : info_hash, "added" : True})
 
 @route("/api/info")
-@route("/api/info/<hash>")
+@route("/api/info/<hash:re:[a-fA-F0-9]{40}>")
 def info(hash=None):
 	"""
 	<h5>Description:</h5>
@@ -220,7 +220,7 @@ def info(hash=None):
 		})
 	else:
 		del torrent["retrieving_data"]
-		torrent["download_link"] = get_url("/api/metadata/<hash:re:[a-f0-9]{40}>.torrent", hash=hash)
+		torrent["download_link"] = get_url("/api/metadata/<hash:re:[a-fA-F0-9]{40}>.torrent", hash=hash)
 		torrent["nice_size"] = size(torrent["total_size_bytes"])
 
 	db.execute("SELECT tracker_url, seeds, leechers, completed FROM tracker WHERE torrent_id=%s", id)
@@ -236,7 +236,7 @@ def info(hash=None):
 	})
 
 @route("/api/metadata")
-@route("/api/metadata/<hash:re:[a-f0-9]{40}>")
+@route("/api/metadata/<hash:re:[a-fA-F0-9]{40}>")
 def metadata(hash=None):
 	"""
 	<h5>Description:</h5>
@@ -284,7 +284,7 @@ def metadata(hash=None):
 		"base64_metadata" : metadata
 	}) if metadata else api_error("The hash %s isnt in the database or the metadata hasnt been retrieved yet" % hash)
 
-@route("/api/metadata/<hash:re:[a-f0-9]{40}>.torrent")
+@route("/api/metadata/<hash:re:[a-fA-F0-9]{40}>.torrent")
 def metadata_file(hash=None):
 	"""
 	<h5>Description:</h5>
@@ -331,10 +331,11 @@ def is_in_database(hash):
 	db.execute("SELECT id FROM torrent WHERE hash=%s", (hash,))
 	return db.rowcount > 0
 
-def add_to_database(hash, full_magnet_uri=None):	
-	db.execute("INSERT INTO torrent(hash, retrieving_data) VALUES (%s, 1)", (hash))
-	db.commit()
-	magnet_uri = full_magnet_uri if full_magnet_uri else "magnet:?xt=urn:btih:%s" % (hash)
+def add_to_database(hash, full_magnet_uri=None, already_exists=False):
+	if not already_exists:
+		db.execute("INSERT INTO torrent(hash, retrieving_data) VALUES (%s, 1)", (hash))
+		db.commit()
+	magnet_uri = full_magnet_uri if full_magnet_uri else get_magnet_uri(hash)
 	logger.info("About to start thread: %s" % magnet_uri)
 	thread.start_new_thread(fetch_magnet, (magnet_uri,))	
 
@@ -390,3 +391,15 @@ def fetch_magnet(magnet_uri):
 	torrent_data = lt.create_torrent(handle.get_torrent_info()).generate()	
 	add_from_torrent_info(handle.get_torrent_info(), lt.bencode(torrent_data))
 	cleanup()
+
+def get_magnet_uri(hash):
+	#use these public trackers to help find the torrent via magnet, otherwise itll never be found
+	public_trackers = "tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.publicbt.com:80&tr=udp://tracker.istole.it:6969&tr=udp://tracker.ccc.de:80"
+	return "magnet:?xt=urn:btih:%s&%s" % (hash, public_trackers)
+
+#get all torrents that were still trying to retrieve metadata and re-add them
+db.execute("SELECT hash FROM torrent WHERE retrieving_data = 1")
+data = db.fetchall()
+for item in data:
+	logger.debug("Reloading '%s' since its metadata hasnt been retrieved yet")
+	add_to_database(item["hash"], get_magnet_uri(item["hash"]), True)	
