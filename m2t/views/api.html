@@ -1,14 +1,22 @@
 {% extends "layout.html" %}
 {% block content %}
 <h2>REST API</h2>
-<p>The whole m2t website operates off this API. Feel free to use it in your projects. Note that if you intend to cause significant traffic, you should clone the <a href="#">github</a> repository and set up your own local version.</p>
+<p>The whole m2t website operates off this API. Feel free to use it in your projects. Note that if you intend to cause significant traffic, you should clone the <a href="https://github.com/erindru/m2t">github</a> repository and set up your own local version.</p>
 <p>All API requests are simple HTTP GET requests to /api/&lt;action&gt;
 <strong>Note:</strong> All parameters must be URI encoded!
 </p>
-{% for key, value in docstrings.iteritems() %}
-<h3>GET {{ key }}</h3>
 <p>
-	
+	Typically, the request flow runs as follows:
+	<ol>
+		<li><strong>/api/upload</strong> - Trigger the downloading of metadata. Call this even if you think the torrent is already in the system, just in case. It will return immediately.</li>
+		<li><strong>/api/info</strong> - Keep checking this (every 5 seconds or so) until `torrent.download_link` has a value. This means that all the metadata has been retrieved.</li>
+		<li><strong>/api/metadata</strong> - If you need the torrent data (as a .torrent file or base64-encoded string), call this</li>
+	</ol>
+</p>
+{% for key, value in docstrings.iteritems() %}
+<hr />
+<h3>GET {{ key }}</h3>
+<p>	
 	{{ value }}
 </p>
 {% endfor %}

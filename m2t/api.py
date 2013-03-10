@@ -38,10 +38,10 @@ atexit.register(on_exit)
 @route("/api")
 def api_index():
 	docs = {
-		"/api/upload/<small>magnet_url_or_hash</small>" : api_upload.__doc__,
-		"/api/info/<small>hash</small>": info.__doc__,
-		"/api/metadata/<small>hash</small>" : metadata.__doc__,
-		"/api/metadata/<small>hash</small>.torrent" : metadata_file.__doc__
+		"/api/upload/&lt;magnet_url_or_hash&gt;" : api_upload.__doc__,
+		"/api/info/&lt;hash&gt;": info.__doc__,
+		"/api/metadata/&lt;hash&gt;" : metadata.__doc__,
+		"/api/metadata/&lt;hash&gt;.torrent" : metadata_file.__doc__
 	}
 	return template("api.html", docstrings=docs)
 

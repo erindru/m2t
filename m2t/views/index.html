@@ -2,7 +2,7 @@
 {% block content %}
 <p>
 	Takes a magnet link, torrent hash or torrent URL and retrieves the .torrent file for it. The file metadata is stored in the database, making subsequent queries instant.
-	An API is available, see <a href="{{ get_url("/api") }}">here</a>
+	An API is available, see <a href="{{ get_url("/api") }}">here</a>. For the source code, see <a href="https://github.com/erindru/m2t">here</a>.
 </p>
 <form class="form-horizontal" method="GET" action="/api/upload">
 	<label for="magnet"><strong>Magnet Link, Torrent Hash or Torrent URL:</strong></label>	

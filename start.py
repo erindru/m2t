@@ -12,5 +12,5 @@ def static(filename):
 SimpleTemplate.defaults["get_url"] = default_app().get_url
 SimpleTemplate.defaults["static_url"] = lambda x: default_app().get_url("/public/<filename:path>", filename=x)
 
-run(port=config.bottle_port, debug=config.bottle_debug, reloader=config.bottle_reload)
+run(port=config.bottle_port, debug=config.bottle_debug, reloader=config.bottle_reload, server=config.bottle_server)
 
