@@ -5,7 +5,7 @@ CREATE TABLE `torrent` (
   `name` varchar(300) DEFAULT NULL,
   `total_size_bytes` int(11) DEFAULT NULL,
   `retrieving_data` tinyint(1) NOT NULL DEFAULT '0',
-  `base64_metadata` text,
+  `base64_metadata` mediumtext,
   `create_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `hash_UNIQUE` (`hash`)

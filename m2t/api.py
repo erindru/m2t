@@ -1,6 +1,7 @@
 from bottle import route, request, response, default_app, jinja2_template as template, HTTPError
 from m2t.db import db
 from urlparse import urlparse
+from hurry.filesize import size
 
 import re, socket, thread, tempfile, shutil, time, os, pprint, atexit, base64, urllib
 import libtorrent as lt, logging as logger, StringIO
@@ -220,12 +221,15 @@ def info(hash=None):
 	else:
 		del torrent["retrieving_data"]
 		torrent["download_link"] = get_url("/api/metadata/<hash:re:[a-f0-9]{40}>.torrent", hash=hash)
+		torrent["nice_size"] = size(torrent["total_size_bytes"])
 
 	db.execute("SELECT tracker_url, seeds, leechers, completed FROM tracker WHERE torrent_id=%s", id)
 	trackers = db.fetchall()
 
 	db.execute("SELECT name, full_location, length_bytes as size_bytes FROM file WHERE torrent_id=%s", id)
 	files = db.fetchall()
+	for file in files:
+		file["nice_size"] = size(file["size_bytes"])
 
 	return api_success({
 		"torrent" : torrent, "files" : files, "trackers" : trackers

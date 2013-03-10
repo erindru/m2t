@@ -24,9 +24,9 @@
 	</tr>
 	{% for item in lastten %}
 	<tr>
-		<td>{{ item['hash'] }}</td>
+		<td><a class="topten" data-hash="{{ item['hash'] }}">{{ item['hash'] }}</a></td>
 		<td>{{ item['name'] }}</td>
-		<td>{{ item['total_size_bytes'] }}</td>
+		<td>{{ size(item['total_size_bytes']) }}</td>
 	</tr>
 	{% endfor %}
 </table>
@@ -73,6 +73,14 @@ $(document).ready(function() {
 		return false;
 	});
 
+	$("a.topten").click(function() {
+		var hash = $(this).data("hash");
+		$.getJSON("/api/info/" + hash, function(data) {
+			populateDetails(data);
+		});
+		return false;
+	});
+
 	function populateDetails(data) {		
 		torrent = data.data.torrent;
 		files = data.data.files;
@@ -80,7 +88,7 @@ $(document).ready(function() {
 		var html = "<h4>Info</h4>";
 		html += "<strong>Name:</strong> " + torrent.name + "<br />";
 		html += "<strong>Info Hash:</strong> " + torrent.hash + "<br />";
-		html += "<strong>Total Size:</strong> " + torrent.total_size_bytes + "<br />";
+		html += "<strong>Total Size:</strong> " + torrent.nice_size + "<br />";
 		html += "<strong>Download Link:</strong> <a href='" + torrent.download_link + "'>" + torrent.hash + ".torrent</a>";
 		html += "<h4>Files</h4>"
 		html += "<table class='table table-condensed'>";
@@ -92,7 +100,7 @@ $(document).ready(function() {
 			f = files[f];
 			html += "<tr>";
 			html += "	<td>" + f.full_location + "</td>";
-			html += "	<td>" + f.size_bytes + "</td>";
+			html += "	<td>" + f.nice_size + "</td>";
 			html += "</tr>";
 		}
 		html += "</table>";
