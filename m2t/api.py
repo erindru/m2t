@@ -94,7 +94,7 @@ def api_upload(magnet_url_or_hash=None):
 		<pre>/api/upload/ddceab34ac388ca56b0cdbc6eb726ca1844233c5</pre>
 	</p>
 	"""
-	url = magnet_url_or_hash
+	url = magnet_url_or_hash if magnet_url_or_hash else request.query.get("magnet_url_or_hash")
 	if not url:
 		return api_error("No magnet, url or hash supplied")	
 	item = url.strip()
