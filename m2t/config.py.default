@@ -1,9 +1,9 @@
 database_host = "localhost"
-database_port = "3306"
+database_port = 3306
 database_username = "youruser"
 database_password = "yourpassword"
 database_name = "m2t"
 
-http_port = "3000"
+bottle_port = 3000
 bottle_debug = False #whether or not debug mode is enabled, if the site is live its recommended to turn this off
 bottle_reload = False #whether or not code is autoreloaded when its changed, turn this off in production
