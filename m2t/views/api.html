@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>REST API</h2>
+<p>The whole m2t website operates off this API. Feel free to use it in your projects. Note that if you intend to cause significant traffic, you should clone the <a href="#">github</a> repository and set up your own local version.</p>
+<p>All API requests are simple HTTP GET requests to /api/&lt;action&gt;
+<strong>Note:</strong> All parameters must be URI encoded!
+</p>
+{% for key, value in docstrings.iteritems() %}
+<h3>GET {{ key }}</h3>
+<p>
+	
+	{{ value }}
+</p>
+{% endfor %}
+{% endblock %}

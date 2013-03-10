@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+{% block content %}
+<p>
+	Takes a magnet link, torrent hash or torrent URL and retrieves the .torrent file for it. The file metadata is stored in the database, making subsequent queries instant.
+	An API is available, see <a href="{{ get_url("/api") }}">here</a>
+</p>
+<form class="form-horizontal" method="GET" action="/api/upload">
+	<label for="magnet"><strong>Magnet Link, Torrent Hash or Torrent URL:</strong></label>	
+	<textarea id="magnet" type="text" name="magnet_or_hash" value="" placeholder="Paste link, hash or url here. For multiple, paste one per line." class="span12"></textarea>
+	<button id="submit" class="btn btn-primary">Retrieve Torrent Metadata</button>
+</form>
+<div id="result">
+	<p id="message"></p>
+</div>
+<div id="details"></div>
+<hr />
+<h3>Last 10 Magnets</h3>
+{% if lastten.__len__ > 0 %}
+<table class="table table-condensed">
+	<tr>
+		<th>Hash</th>
+		<th>Name</th>
+		<th>Size</th>
+	</tr>
+	{% for item in lastten %}
+	<tr>
+		<td>{{ item['hash'] }}</td>
+		<td>{{ item['name'] }}</td>
+		<td>{{ item['total_size_bytes'] }}</td>
+	</tr>
+	{% endfor %}
+</table>
+{% else %}
+	<p>No torrents returned.</p>
+{% endif %}
+<script type="text/javascript">
+$(document).ready(function() {
+	ajax_loader = "<img src='{{ static_url('ajax-loader.gif') }}' />"
+	$("#submit").click(function() {
+		$("#message").html("");
+		var url = $("#magnet").val().trim();
+		if (!url) {
+			alert("Please enter a magnet link, torrent hash or torrent url");
+			return false;
+		}
+		$("#details").html("");
+		var message = $("#message");
+		$(message).attr("class", "");
+		$(message).html("Requesting data for " + url + " " + ajax_loader);
+		$.getJSON("/api/upload/" + encodeURIComponent(url), function(data) {
+			if (!data.success) {
+				$(message).addClass("text-error").text("Requesting data failed: " + data.message);
+			} else {
+				var hash = data.data.hash;								
+				$(message).html("Retrieving metadata for '" + hash + "'... " + ajax_loader);
+				var check = setInterval(function() {
+					$.getJSON("/api/info/" + hash, function(data) {
+						if (!data.success) {
+							clearInterval(check);
+							$(message).addClass("text-error").text("Retrieving metadata failed: " + data.message);							
+							return false;
+						}
+						var download_link = data.data.torrent.download_link
+						if (download_link) {
+							clearInterval(check);							
+							$(message).addClass("text-success").html("Retrieved metadata!");
+							populateDetails(data);
+						}
+					})
+				}, 3000);				
+			}
+		})
+		return false;
+	});
+
+	function populateDetails(data) {		
+		torrent = data.data.torrent;
+		files = data.data.files;
+		trackers = data.data.trackers;
+		var html = "<h4>Info</h4>";
+		html += "<strong>Name:</strong> " + torrent.name + "<br />";
+		html += "<strong>Info Hash:</strong> " + torrent.hash + "<br />";
+		html += "<strong>Total Size:</strong> " + torrent.total_size_bytes + "<br />";
+		html += "<strong>Download Link:</strong> <a href='" + torrent.download_link + "'>" + torrent.hash + ".torrent</a>";
+		html += "<h4>Files</h4>"
+		html += "<table class='table table-condensed'>";
+		html += "	<tr>";
+		html += "		<th>Path</th>";
+		html += "		<th>Size</th>";
+		html += "	</tr>";
+		for (var f in files) {
+			f = files[f];
+			html += "<tr>";
+			html += "	<td>" + f.full_location + "</td>";
+			html += "	<td>" + f.size_bytes + "</td>";
+			html += "</tr>";
+		}
+		html += "</table>";
+		html += "<h4>Trackers</h4>";
+		html += "<table class='table table-condensed'>";
+		html += "	<tr>";
+		html += "		<th>URL</th>";
+		html += "		<th>Seeders</th>";
+		html += "		<th>Leechers</th>";
+		html += "		<th>Downloads</th>";
+		html += "	</tr>";
+		for (var t in trackers) {
+			t = trackers[t];
+			html += "<tr>";
+			html += "	<td>" + t.tracker_url + "</td>";
+			html += "	<td>" + t.seeds + "</td>";
+			html += "	<td>" + t.leechers + "</td>";
+			html += "	<td>" + t.completed + "</td>";
+			html += "</tr>";
+		}				
+		html += "</table>";
+		$("#details").html(html);
+	}
+});
+</script>
+<style type="text/css">
+	#magnet {
+		height: 60px;
+		margin-bottom: 10px;
+	}
+</style>
+
+{% endblock %}

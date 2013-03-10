@@ -1,0 +1,5 @@
+libtorrent.settings
+*.pyc
+*.pyo
+
+m2t/config.py
