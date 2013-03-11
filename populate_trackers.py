@@ -1,9 +1,10 @@
 #!/usr/bin/python
 import socket
-from m2t.db import db
+import m2t.db as database
 from m2t.scraper import scrape
 
 def main():
+	db = database.get_cursor()
 	db.execute("SELECT torrent_id, tracker_id, hash, tracker_url, last_scrape FROM vw_scrape")	
 	all_trackers = {}	
 	for x in range(0, db.rowcount):
@@ -32,6 +33,7 @@ def main():
 			db.execute("""UPDATE tracker SET last_scrape=CURRENT_TIMESTAMP, scrape_error=%s
 				WHERE tracker_url=%s AND torrent_id IN (SELECT id FROM torrent WHERE hash IN (""" + format_strings + "))", (e, tracker))
 			db.commit()
+	db.close()
 
 if __name__ == "__main__":
 	main()

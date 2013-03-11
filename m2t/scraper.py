@@ -1,7 +1,6 @@
 import binascii, urllib, socket, random, struct
 from bcode import bdecode
 from urlparse import urlparse, urlunsplit
-from m2t.db import db
 
 def scrape(tracker, hashes):
 	tracker = tracker.lower()

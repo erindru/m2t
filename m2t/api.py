@@ -1,5 +1,5 @@
 from bottle import route, request, response, default_app, jinja2_template as template, HTTPError
-from m2t.db import db
+import m2t.db as database
 from urlparse import urlparse
 from hurry.filesize import size
 from m2t.scraper import scrape
@@ -29,7 +29,9 @@ if os.path.exists(libtorrent_settings_file):
 	handle.close()
 
 #Save DHT data
-def on_exit():	
+def on_exit():
+	if not ses:
+		return
 	state = ses.save_state(lt.save_state_flags_t(0x006)) #dht_sate is 0x002 and dht_settings is 0x004	
 	logger.debug("Writing DHT state to: %s" % libtorrent_settings_file)
 	handle = open(libtorrent_settings_file, "w")
@@ -125,8 +127,9 @@ def api_upload(magnet_url_or_hash=None):
 			handle.close()
 			os.remove(download_to)
 			info_hash = "%s" % info.info_hash()
-			add_to_database(info_hash, fetch_metadata=False)
-			thread.start_new_thread(add_from_torrent_info, (info, torrent_data))			
+			if not is_in_database(info_hash):
+				add_to_database(info_hash, fetch_metadata=False)
+				thread.start_new_thread(add_from_torrent_info, (info, torrent_data))			
 		else:
 			raise RuntimeError("Cannot recognise this url: %s" % item)
 	except (RuntimeError, IOError) as e:
@@ -206,7 +209,7 @@ def info(hash=None):
 	"""
 	if not hash or not is_hash(hash):
 		return api_error("%s is not a valid hash" % hash)
-	
+	db = database.get_cursor()
 	db.execute("SELECT id, hash, name, total_size_bytes, retrieving_data FROM torrent WHERE hash=%s", hash)
 	torrent = db.fetchone()
 	if not torrent:
@@ -236,6 +239,7 @@ def info(hash=None):
 	for file in files:
 		file["nice_size"] = size(file["size_bytes"])
 
+	db.close()
 	return api_success({
 		"torrent" : torrent, "files" : files, "trackers" : trackers
 	})
@@ -333,19 +337,25 @@ def is_url(item):
 	return parsed.scheme.lower() in ["http", "https"]
 
 def is_in_database(hash):
+	db = database.get_cursor()
 	db.execute("SELECT id FROM torrent WHERE hash=%s", (hash,))
-	return db.rowcount > 0
+	ret = db.rowcount > 0
+	db.close()
+	return ret
 
 def add_to_database(hash, full_magnet_uri=None, already_exists=False, fetch_metadata=True):
+	db = database.get_cursor()
 	if not already_exists:
 		db.execute("INSERT INTO torrent(hash, retrieving_data) VALUES (%s, 1)", (hash))
 		db.commit()
 	if fetch_metadata:
 		magnet_uri = full_magnet_uri if full_magnet_uri else get_magnet_uri(hash)		
 		thread.start_new_thread(fetch_magnet, (magnet_uri,))
+	db.close()
 
 def add_from_torrent_info(info, torrent_metadata=None):
-	torrent_hash = str(info.info_hash())
+	db = database.get_cursor()
+	torrent_hash = str(info.info_hash())	
 	if is_in_database(torrent_hash):
 		db.execute("DELETE FROM torrent WHERE hash=%s", (torrent_hash))	
 	total_size = sum([f.size for f in info.files()])
@@ -360,15 +370,18 @@ def add_from_torrent_info(info, torrent_metadata=None):
 		db.execute("INSERT INTO tracker(torrent_id, tracker_url) VALUES (%s, %s)",
 			(torrent_id, t.url))
 	db.commit()	
-
+	db.close()
 	scrape_trackers(torrent_hash, [t.url for t in info.trackers()])
 
 def get_base64_metadata(hash, decode=False):
-	db.execute("SELECT base64_metadata FROM torrent WHERE hash=%s", hash)
+	db = database.get_cursor()
+	db.execute("SELECT base64_metadata FROM torrent WHERE hash=%s", hash)	
 	if (db.rowcount > 0):
 		data = db.fetchone()
+		db.close()
 		metadata = data['base64_metadata']
 		return base64.b64decode(metadata) if decode else metadata
+	db.close()
 	return None
 
 def fetch_magnet(magnet_uri):	
@@ -404,6 +417,7 @@ def get_magnet_uri(hash):
 	return "magnet:?xt=urn:btih:%s&%s" % (hash, public_trackers)
 
 def scrape_trackers(hash, tracker_list):
+	db = database.get_cursor()
 	for url in tracker_list:
 		try:
 			result = scrape(url, [hash])				
@@ -417,10 +431,13 @@ def scrape_trackers(hash, tracker_list):
 			db.execute("""UPDATE tracker SET last_scrape=CURRENT_TIMESTAMP, scrape_error=%s
 				WHERE tracker_url=%s AND torrent_id=(SELECT id FROM torrent WHERE hash=%s)""", (e, url, hash))
 			db.commit()
+	db.close()			
 
 #get all torrents that were still trying to retrieve metadata and re-add them
+db = database.get_cursor()
 db.execute("SELECT hash FROM torrent WHERE retrieving_data = 1")
 data = db.fetchall()
 for item in data:
 	logger.debug("Reloading '%s' since its metadata hasnt been retrieved yet" % item["hash"])
-	add_to_database(item["hash"], get_magnet_uri(item["hash"]), True)	
+	add_to_database(item["hash"], get_magnet_uri(item["hash"]), True)
+db.close()

@@ -73,8 +73,9 @@ $(document).ready(function() {
 		return false;
 	});
 
-	$("a.topten").click(function() {
+	$("body").on("click", "a.topten, a.refresh", function() {
 		var hash = $(this).data("hash");
+		$("#details").html(ajax_loader)
 		$.getJSON("/api/info/" + hash, function(data) {
 			populateDetails(data);
 		});
@@ -85,7 +86,7 @@ $(document).ready(function() {
 		torrent = data.data.torrent;
 		files = data.data.files;
 		trackers = data.data.trackers;
-		var html = "<h4>Info</h4>";
+		var html = "<h4>Info <small>[<a class='refresh' data-hash='" + torrent.hash + "'>Refresh</a>]</small></h4>";
 		html += "<strong>Name:</strong> " + torrent.name + "<br />";
 		html += "<strong>Info Hash:</strong> " + torrent.hash + "<br />";
 		html += "<strong>Total Size:</strong> " + torrent.nice_size + "<br />";
