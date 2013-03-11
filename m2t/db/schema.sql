@@ -35,3 +35,20 @@ CREATE TABLE `tracker` (
   KEY `tracker_torrent_fk_idx` (`torrent_id`),
   CONSTRAINT `tracker_torrent_fk` FOREIGN KEY (`torrent_id`) REFERENCES `torrent` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ALTER TABLE `tracker` ADD COLUMN `last_scrape` TIMESTAMP NULL  AFTER `completed` ;
+ALTER TABLE `tracker` ADD COLUMN `scrape_error` VARCHAR(300) NULL  AFTER `last_scrape` ;
+
+CREATE OR REPLACE VIEW `vw_scrape` AS
+    select 
+        `t`.`hash` AS `hash`,
+        `t`.`id` AS `torrent_id`,
+        `tr`.`id` AS `tracker_id`,
+        `tr`.`tracker_url` AS `tracker_url`,
+        `tr`.`last_scrape` AS `last_scrape`
+    from
+        (`torrent` `t`
+        join `tracker` `tr`)
+    where
+        (isnull(`tr`.`last_scrape`)
+            or (`tr`.`last_scrape` < (now() - interval 10 minute)))

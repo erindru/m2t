@@ -114,8 +114,9 @@ $(document).ready(function() {
 		html += "	</tr>";
 		for (var t in trackers) {
 			t = trackers[t];
+			se = (t.scrape_error) ? "<small class='text-error'>Error: " + t.scrape_error + "</small>" : "";
 			html += "<tr>";
-			html += "	<td>" + t.tracker_url + "</td>";
+			html += "	<td>" + t.tracker_url + " " + se + "</td>";
 			html += "	<td>" + t.seeds + "</td>";
 			html += "	<td>" + t.leechers + "</td>";
 			html += "	<td>" + t.completed + "</td>";

@@ -3,6 +3,11 @@ from bottle import route, run, static_file, default_app, SimpleTemplate
 import m2t, bottle
 from m2t import config
 from hurry.filesize import size
+import m2t.api
+import m2t.main
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 bottle.TEMPLATE_PATH.append("./m2t/views")
 
