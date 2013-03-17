@@ -49,19 +49,19 @@ def api_index():
 	}
 	return template("api.html", docstrings=docs)
 
-@route("/api/upload")
-@route("/api/upload/<magnet_url_or_hash:re:.*>")
+@route("/api/upload", method=["GET", "POST"])
+@route("/api/upload/<magnet_url_or_hash:re:.*>", method=["GET", "POST"])
 def api_upload(magnet_url_or_hash=None):
 	"""
 	<h5>Description:</h5>
 	<p>
 		Adds a new torrent to the system and retrieves its data if its not already in the system.
-		Note: If the torrent is added via a SHA-1 info_hash, a magnet link is constructed and we attempt to retrieve the torrent via DHT
+		Note: If the torrent is added via a SHA-1 info_hash, a magnet link is constructed and we attempt to retrieve the torrent via DHT		
 	</p>
 
 	<h5>Parameters:</h5>
 	<ul>
-		<li><strong>magnet_url_or_hash</strong> - A magnet link, a HTTP url to the .torrent file, or a SHA-1 info_hash</li>
+		<li><strong>magnet_url_or_hash</strong> - A magnet link, a HTTP url to the .torrent file, or a SHA-1 info_hash. Can also be the base64 encoding of a binary .torrent file</li>
 	</ul>
 
 	<h5>Returns:</h5>
@@ -98,7 +98,7 @@ def api_upload(magnet_url_or_hash=None):
 		<pre>/api/upload/ddceab34ac388ca56b0cdbc6eb726ca1844233c5</pre>
 	</p>
 	"""
-	url = magnet_url_or_hash if magnet_url_or_hash else request.query.get("magnet_url_or_hash")
+	url = magnet_url_or_hash if magnet_url_or_hash else request.params.get("magnet_url_or_hash")
 	if not url:
 		return api_error("No magnet, url or hash supplied")	
 	item = url.strip()
@@ -108,6 +108,13 @@ def api_upload(magnet_url_or_hash=None):
 			info_hash = item;			
 			if not is_in_database(item):
 				add_to_database(item)
+		elif is_base64(item):
+			decoded = base64.b64decode(item)
+			info = lt.torrent_info(lt.bdecode(decoded))
+			info_hash = "%s" % info.info_hash()
+			if not is_in_database(info_hash):
+				add_to_database(info_hash, fetch_metadata=False)
+				thread.start_new_thread(add_from_torrent_info, (info, torrent_data))			
 		elif is_magnet(item):			
 			params = lt.parse_magnet_uri(item)			
 			info_hash = str(params["info_hash"])
@@ -331,6 +338,9 @@ def is_magnet(item):
 
 def is_hash(item):
 	return hash_pattern.match(item)
+
+def is_base64(item):	
+	return (len(item) % 4 == 0) and re.match("^[A-Za-z0-9+/]+[=]{0,2}$", item)
 
 def is_url(item):
 	parsed = urlparse(item)

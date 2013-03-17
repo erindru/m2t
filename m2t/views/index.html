@@ -47,7 +47,7 @@ $(document).ready(function() {
 		var message = $("#message");
 		$(message).attr("class", "");
 		$(message).html("Requesting data for " + url + " " + ajax_loader);
-		$.getJSON("/api/upload/", { "magnet_url_or_hash" : url }, function(data) {
+		$.post("/api/upload/", { "magnet_url_or_hash" : url }, function(data) {
 			if (!data.success) {
 				$(message).addClass("text-error").text("Requesting data failed: " + data.message);
 			} else {
