@@ -8,4 +8,4 @@ bottle_port = 3000
 bottle_debug = False #whether or not debug mode is enabled, if the site is live its recommended to turn this off
 bottle_reload = False #whether or not code is autoreloaded when its changed, turn this off in production
 bottle_server = "cherrypy"
-bottle_host = "0.0.0.0" #default its accesible by world setting it to 127.0.0.1 will limit access to only localhost
+bottle_host = "127.0.0.1" #switch to 0.0.0.0 to make accessible on all interfaces, however that is not required if you're proxing to it via another webserver running on the same host
