@@ -16,4 +16,4 @@ SimpleTemplate.defaults["get_url"] = app.get_url
 SimpleTemplate.defaults["static_url"] = lambda x: app.get_url("/public/<filename:path>", filename=x)
 SimpleTemplate.defaults["size"] = size
 
-run(port=config.bottle_port, debug=config.bottle_debug, reloader=config.bottle_reload, server=config.bottle_server)
+run(host=config.bottle_host, port=config.bottle_port, debug=config.bottle_debug, reloader=config.bottle_reload, server=config.bottle_server)
