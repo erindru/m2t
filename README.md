@@ -3,7 +3,6 @@ m2t - Magnet to Torrent converter
 Overview
 --------
 m2t is a simple service for converting magnets to torrents. It is written in Python/MySQL and uses the bottle web framework and libtorrent bindings.
-A reference installation of the service can be found at: [http://m2t.openseedbox.com](http://m2t.openseedbox.com)
 
 Installation
 ------------
