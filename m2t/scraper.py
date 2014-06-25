@@ -70,9 +70,9 @@ def scrape_http(parsed_tracker, hashes):
 	ret = {}
 	for hash, stats in decoded['files'].iteritems():		
 		nice_hash = binascii.b2a_hex(hash)		
-		s = stats["downloaded"]
+		s = stats["complete"]
 		p = stats["incomplete"]
-		c = stats["complete"]
+		c = stats["downloaded"]
 		ret[nice_hash] = { "seeds" : s, "peers" : p, "complete" : c}		
 	return ret
 
